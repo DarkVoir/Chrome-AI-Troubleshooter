@@ -122,9 +122,10 @@ If Chrome AI is unavailable (unsupported region or not enabled):
 
 ### Setup
 
-git clone https://github.com/YOUR_USERNAME/dark-voir-ai-troubleshooter.git --------------------------------- Need to update <<<<<<<<<<<<<<<<<<
+git clone https://github.com/DarkVoir/Chrome-AI-Troubleshooter
 
-cd chrome-ai-troubleshooter
+cd Chrome-Ai-Troubleshooter
+
 Load in Chrome
 1. Open chrome://extensions/
 2. Enable Developer mode
@@ -172,7 +173,7 @@ MIT License - see [LICENSE](LICENSE) file
 
 - **Author**: Krishna Lamichhane
 - **Email**: klamichhane1@myseneca.ca
-- **GitHub**: [@yourusername](https://github.com/yourusername) -------------------------------------- Need update <<<<<<<<<<<<<<<<<<<<<<<
+- **GitHub**: [@DarkVoir](https://github.com/DarkVoir)
 - **Devpost**: [Project Link](https://devpost.com/software/dark-voir-ai) ------------------------------Need update <<<<<<<<<<<<<<<<<<<<<<
 
 ---
