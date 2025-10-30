@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Voir AI Troubleshooter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🔍</span>
+      <h1>Dark Voir AI</h1>
+    </div>
+    <div class="header-actions">
+      <div class="ai-status">
+        <span class="ai-status-indicator" id="ai-status-indicator"></span>
+        <span class="ai-status-text" id="ai-status-text">Checking...</span>
+      </div>
+      <button class="icon-btn" id="refresh-btn" title="Refresh">
+        <span>🔄</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">
+      <span>📊</span> Dashboard
+    </button>
+    <button class="tab-btn" data-tab="issues">
+      <span>⚠️</span> Issues
+      <span class="badge" id="issues-badge" style="display:none;">0</span>
+    </button>
+    <button class="tab-btn" data-tab="fixes">
+      <span>🔧</span> Fixes
+      <span class="badge" id="fixes-badge" style="display:none;">0</span>
+    </button>
+    <button class="tab-btn" data-tab="chat">
+      <span>💬</span> AI Chat
+    </button>
+    <button class="tab-btn" data-tab="settings">
+      <span>⚙️</span> Settings
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-pane active">
+      <!-- Metrics Overview -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon status">📊</div>
+          <div class="metric-info">
+            <span class="metric-value" id="status-value">Good</span>
+            <span class="metric-label">Status</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon errors">🔴</div>
+          <div class="metric-info">
+            <span class="metric-value" id="error-count">0</span>
+            <span class="metric-label">Errors</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon warnings">🟡</div>
+          <div class="metric-info">
+            <span class="metric-value" id="warning-count">0</span>
+            <span class="metric-label">Warnings</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ai">🤖</div>
+          <div class="metric-info">
+            <span class="metric-value" id="ai-capability">...</span>
+            <span class="metric-label">AI Status</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section">
+        <h3>Quick Actions</h3>
+        <div class="action-grid">
+          <button class="action-btn primary" id="scan-btn">
+            <span>🔍</span> Scan Page
+          </button>
+          <button class="action-btn secondary" id="visual-guide-btn">
+            <span>👁️</span> Visual Guide
+          </button>
+          <button class="action-btn secondary" id="self-check-btn">
+            <span>🩺</span> Self Check
+          </button>
+          <button class="action-btn secondary" id="export-btn">
+            <span>💾</span> Export Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="section">
+        <h3>Recent Activity</h3>
+        <div id="recent-activity" class="activity-list"></div>
+      </div>
+    </div>
+
+    <!-- Issues Tab -->
+    <div id="issues" class="tab-pane">
+      <!-- Filter Controls -->
+      <div class="filter-bar">
+        <select id="severity-filter" class="filter-select">
+          <option value="all">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="type-filter" class="filter-select">
+          <option value="all">All Types</option>
+          <option value="error">Errors</option>
+          <option value="warning">Warnings</option>
+          <option value="console">Console</option>
+          <option value="network">Network</option>
+          <option value="performance">Performance</option>
+        </select>
+        <button class="btn-clear" id="clear-issues-btn">Clear All</button>
+      </div>
+
+      <!-- Issues List -->
+      <div id="issues-list" class="issues-container"></div>
+    </div>
+
+    <!-- Fixes Tab -->
+    <div id="fixes" class="tab-pane">
+      <div class="fixes-header">
+        <h3>AI-Generated Fixes</h3>
+        <div class="fixes-actions">
+          <button class="btn-primary" id="generate-all-fixes-btn">
+            <span>✨</span> Generate All Fixes
+          </button>
+          <button class="btn-secondary" id="export-fixes-btn">
+            <span>📄</span> Export
+          </button>
+        </div>
+      </div>
+      <div id="fixes-list" class="fixes-container"></div>
+    </div>
+
+    <!-- Chat Tab -->
+    <div id="chat" class="tab-pane">
+      <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-container">
+          <textarea 
+            id="chat-input" 
+            class="chat-input" 
+            placeholder="Ask Dark Voir AI anything about this page..."
+            rows="2"
+          ></textarea>
+          <button class="btn-send" id="chat-send-btn">
+            <span>📤</span> Send
+          </button>
+        </div>
+        <div class="chat-suggestions">
+          <button class="suggestion-chip" data-suggestion="What errors do you see?">What errors?</button>
+          <button class="suggestion-chip" data-suggestion="How can I improve performance?">Improve performance</button>
+          <button class="suggestion-chip" data-suggestion="Explain the issues">Explain issues</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settings" class="tab-pane">
+      <!-- AI Settings -->
+      <div class="settings-section">
+        <h3>AI Settings</h3>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Auto-generate fixes</span>
+            <span class="setting-desc">Automatically generate AI fixes for new issues</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="auto-generate-fixes" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Show AI suggestions</span>
+            <span class="setting-desc">Display AI-powered suggestions in chat</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="show-ai-suggestions" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Monitoring Settings -->
+      <div class="settings-section">
+        <h3>Monitoring</h3>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Console errors</span>
+            <span class="setting-desc">Monitor JavaScript console errors</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="monitor-console" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Network issues</span>
+            <span class="setting-desc">Track failed network requests</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="monitor-network" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Performance warnings</span>
+            <span class="setting-desc">Detect performance bottlenecks</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="monitor-performance" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Display Settings -->
+      <div class="settings-section">
+        <h3>Display</h3>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Visual guides</span>
+            <span class="setting-desc">Show on-page visual troubleshooting guides</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="show-visual-guides" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Notifications</span>
+            <span class="setting-desc">Desktop notifications for new issues</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="show-notifications">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-section">
+        <h3>About</h3>
+        <div class="about-info">
+          <p><strong>Dark Voir AI Troubleshooter</strong></p>
+          <p>Version 3.0.0</p>
+          <p>Powered by Chrome Built-in AI (Gemini Nano)</p>
+          <div class="api-status">
+            <p><strong>Available APIs:</strong></p>
+            <ul id="api-capabilities"></ul>
+          </div>
+          <p class="help-text">
+            Enable Chrome AI at:<br>
+            <code>chrome://flags/#prompt-api-for-gemini-nano</code>
+          </p>
+          <div class="about-links">
+            <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank">Chrome AI Docs</a>
+            <a href="#" id="view-logs-btn">View Logs</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts in correct order -->
+  <script src="utils.js"></script>
+  <script src="ai-helper.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

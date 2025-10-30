@@ -1,0 +1,81 @@
+{
+  "manifest_version": 3,
+  "name": "Dark Voir AI Troubleshooter",
+  "version": "3.0.0",
+  "description": "AI-powered intelligent troubleshooter with visual guidance, self-diagnostics, and human-like problem solving using Chrome's Built-in AI",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "webNavigation",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_title": "Dark Voir AI Troubleshooter"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "utils.js",
+        "logger.js",
+        "error-handler.js",
+        "dom-analyzer.js",
+        "visual-guide.js",
+        "content.js"
+      ],
+      "css": [
+        "visual-guide.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "visual-guide.css",
+        "assets/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "commands": {
+    "activate-visual-guide": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+G",
+        "mac": "Command+Shift+G"
+      },
+      "description": "Activate AI Visual Guide"
+    },
+    "quick-troubleshoot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Command+Shift+T"
+      },
+      "description": "Quick AI Troubleshoot"
+    }
+  },
+  "minimum_chrome_version": "127"
+}
