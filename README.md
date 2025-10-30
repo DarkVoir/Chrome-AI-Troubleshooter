@@ -150,12 +150,6 @@ Test on pages with errors
 
 **For unsupported regions**: Extension will work for error detection, but AI features will be unavailable until Google expands regional support.
 
-## 📝 Documentation
-
-- [User Guide](docs/USER_GUIDE.md) - Complete feature documentation
-- [Setup Guide](docs/SETUP.md) - Detailed installation steps
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
-
 ## 🤝 Contributing
 
 Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
