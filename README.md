@@ -123,7 +123,7 @@ If Chrome AI is unavailable (unsupported region or not enabled):
 
 ### Setup
 
-git clone https://github.com/DarkVoir/Chrome-AI-Troubleshooter
+git clone https://github.com/DarkVoir/Chrome-AI-Troubleshooter.git
 
 cd Chrome-Ai-Troubleshooter
 
