@@ -106,13 +106,13 @@ If Chrome AI is unavailable (unsupported region or not enabled):
 
 ## 📁 Project Structure
 
-├  manifest.json # Extension configuration
-├ popup.html/css/js # Main UI and logic
-├ ai-helper.js # Chrome AI integration layer
-├ background.js # Background service worker
-├ content.js # Page context script
-├ visual-guide.js # Visual troubleshooting
-└ utils.js # Utility functions
+|- manifest.json # Extension configuration
+|- popup.html/css/js # Main UI and logic
+|- ai-helper.js # Chrome AI integration layer
+|- background.js # Background service worker
+|- content.js # Page context script
+|- visual-guide.js # Visual troubleshooting
+|- utils.js # Utility functions
 
 ## 🔧 Development
 
