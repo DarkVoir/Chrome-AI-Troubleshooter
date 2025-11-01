@@ -1,127 +1,483 @@
-/* Dark Voir Visual Guide Styles */
+/**
+ * Dark Voir - Visual Guide CSS
+ * Styles for interactive step-by-step visual guidance
+ */
 
-/* Highlight effect for targeted elements */
-.dark-voir-highlight {
-  outline: 3px solid #00d9ff !important;
-  outline-offset: 2px;
-  border-radius: 6px;
-  box-shadow: 0 0 15px rgba(0, 217, 255, 0.6) !important;
-  animation: dark-voir-pulse 1.5s ease-in-out infinite;
-  position: relative;
-  z-index: 999998 !important;
+/* ========================================
+   OVERLAY & CONTAINER STYLES
+   ======================================== */
+
+.dark-voir-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999998;
+  pointer-events: none;
+  animation: overlay-fade-in 0.3s ease;
 }
 
-/* Pulse animation for highlight */
-@keyframes dark-voir-pulse {
+@keyframes overlay-fade-in {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ========================================
+   HIGHLIGHT BOX STYLES
+   ======================================== */
+
+.dark-voir-highlight {
+  position: fixed;
+  border: 3px solid #00d9ff;
+  border-radius: 8px;
+  z-index: 999999;
+  pointer-events: none;
+  animation: highlight-pulse 2s infinite;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 4px rgba(0, 217, 255, 0.3),
+              0 0 20px 8px rgba(0, 217, 255, 0.5),
+              inset 0 0 20px rgba(0, 217, 255, 0.2);
+}
+
+@keyframes highlight-pulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+    box-shadow: 0 0 0 4px rgba(0, 217, 255, 0.3),
+                0 0 20px 8px rgba(0, 217, 255, 0.5),
+                inset 0 0 20px rgba(0, 217, 255, 0.2);
   }
   50% {
-    box-shadow: 0 0 25px rgba(0, 217, 255, 0.9);
+    box-shadow: 0 0 0 6px rgba(0, 217, 255, 0.5),
+                0 0 30px 12px rgba(0, 217, 255, 0.7),
+                inset 0 0 30px rgba(0, 217, 255, 0.3);
   }
 }
 
-/* Dark overlay background */
-.dark-voir-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  z-index: 999997 !important;
-  pointer-events: none !important;
-}
+/* ========================================
+   MESSAGE BOX STYLES
+   ======================================== */
 
-/* Message bubble for instructions */
 .dark-voir-message {
-  position: absolute;
+  position: fixed;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border-radius: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 999999 !important;
-  max-width: 300px;
-  animation: dark-voir-fade-in 0.3s ease-out;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: 320px;
+  z-index: 1000000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: message-appear 0.3s ease;
+  word-wrap: break-word;
 }
 
-/* Fade in animation */
-@keyframes dark-voir-fade-in {
+@keyframes message-appear {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* Pointer/arrow indicator */
-.dark-voir-pointer {
+/* Message pointer triangle */
+.dark-voir-message::before {
+  content: '';
   position: absolute;
-  font-size: 32px;
-  z-index: 999999 !important;
-  animation: dark-voir-point 0.8s ease-in-out infinite;
-  pointer-events: none;
+  border: 10px solid transparent;
 }
 
-@keyframes dark-voir-point {
+.dark-voir-message.position-top::before {
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: #667eea;
+}
+
+.dark-voir-message.position-bottom::before {
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: #764ba2;
+}
+
+.dark-voir-message.position-left::before {
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: #667eea;
+}
+
+.dark-voir-message.position-right::before {
+  left: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: #764ba2;
+}
+
+/* Message variants */
+.dark-voir-message.success {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.dark-voir-message.success::before {
+  border-top-color: #4CAF50;
+  border-bottom-color: #45a049;
+  border-left-color: #4CAF50;
+  border-right-color: #45a049;
+}
+
+.dark-voir-message.error {
+  background: linear-gradient(135deg, #F44336 0%, #d32f2f 100%);
+}
+
+.dark-voir-message.error::before {
+  border-top-color: #F44336;
+  border-bottom-color: #d32f2f;
+  border-left-color: #F44336;
+  border-right-color: #d32f2f;
+}
+
+.dark-voir-message.warning {
+  background: linear-gradient(135deg, #FF9800 0%, #f57c00 100%);
+}
+
+.dark-voir-message.info {
+  background: linear-gradient(135deg, #2196F3 0%, #1976d2 100%);
+}
+
+/* ========================================
+   POINTER/FINGER STYLES
+   ======================================== */
+
+.dark-voir-pointer {
+  position: fixed;
+  width: 50px;
+  height: 50px;
+  font-size: 40px;
+  z-index: 1000001;
+  animation: pointer-pulse 1s infinite;
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.25;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pointer-pulse {
   0%, 100% {
-    transform: translateY(0);
+    transform: scale(1);
+    opacity: 1;
   }
   50% {
-    transform: translateY(-8px);
+    transform: scale(1.2);
+    opacity: 0.8;
   }
 }
 
-/* Navigation controls */
-.dark-voir-controls {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  display: flex;
-  gap: 10px;
-  z-index: 1000000 !important;
-}
+/* ========================================
+   STEP INDICATOR STYLES
+   ======================================== */
 
-.dark-voir-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
+.dark-voir-step-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 12px 20px;
   border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  color: #333;
+  z-index: 1000002;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: indicator-slide-in 0.3s ease;
 }
 
-.dark-voir-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+@keyframes indicator-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.dark-voir-btn:active {
-  transform: translateY(0);
-}
+/* ========================================
+   CONTROLS STYLES
+   ======================================== */
 
-/* Step counter */
-.dark-voir-step-counter {
+.dark-voir-controls {
   position: fixed;
-  top: 30px;
-  right: 30px;
-  background: rgba(0, 0, 0, 0.8);
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 12px 16px;
+  border-radius: 30px;
+  display: flex;
+  gap: 12px;
+  z-index: 1000002;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: controls-slide-up 0.3s ease;
+}
+
+@keyframes controls-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.dark-voir-controls button {
+  background: #667eea;
   color: white;
+  border: none;
   padding: 10px 20px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
-  z-index: 1000000 !important;
-  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dark-voir-controls button:hover:not(:disabled) {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-voir-controls button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.dark-voir-controls button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Exit button variant */
+.dark-voir-controls button:last-child {
+  background: #999;
+}
+
+.dark-voir-controls button:last-child:hover {
+  background: #666;
+}
+
+/* ========================================
+   KEYBOARD SHORTCUTS INFO
+   ======================================== */
+
+.guide-keyboard-help {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 1000001;
+  max-width: 200px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+
+.guide-keyboard-help kbd {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  .dark-voir-message {
+    font-size: 14px;
+    padding: 12px 16px;
+    max-width: 280px;
+  }
+
+  .dark-voir-step-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .dark-voir-controls {
+    bottom: 10px;
+    left: 50%;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .dark-voir-controls button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .dark-voir-pointer {
+    width: 40px;
+    height: 40px;
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dark-voir-message {
+    font-size: 13px;
+    padding: 10px 12px;
+    max-width: 240px;
+  }
+
+  .dark-voir-step-indicator {
+    top: 5px;
+    right: 5px;
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .dark-voir-controls {
+    bottom: 5px;
+    left: 5px;
+    right: 5px;
+    transform: translateX(0);
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .dark-voir-controls button {
+    padding: 6px 12px;
+    font-size: 11px;
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+
+.dark-voir-message:focus,
+.dark-voir-controls button:focus {
+  outline: 2px solid #00d9ff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dark-voir-overlay,
+  .dark-voir-highlight,
+  .dark-voir-message,
+  .dark-voir-pointer,
+  .dark-voir-step-indicator,
+  .dark-voir-controls {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ========================================
+   HIGH CONTRAST MODE
+   ======================================== */
+
+@media (prefers-contrast: more) {
+  .dark-voir-highlight {
+    border-width: 4px;
+    box-shadow: 0 0 0 6px rgba(0, 217, 255, 0.5),
+                0 0 30px 12px rgba(0, 217, 255, 0.8);
+  }
+
+  .dark-voir-message {
+    box-shadow: 0 0 0 2px #00d9ff,
+                0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+  .dark-voir-step-indicator {
+    background: #1a1a1a;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark-voir-controls {
+    background: #1a1a1a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.guide-hidden {
+  display: none !important;
+}
+
+.guide-visible {
+  display: block !important;
+}
+
+.guide-active {
+  z-index: 999999;
+}
+
+.guide-complete {
+  animation: complete-pulse 0.6s ease;
+}
+
+@keyframes complete-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .dark-voir-overlay,
+  .dark-voir-highlight,
+  .dark-voir-message,
+  .dark-voir-pointer,
+  .dark-voir-step-indicator,
+  .dark-voir-controls,
+  .guide-keyboard-help {
+    display: none !important;
+  }
 }

@@ -1,15 +1,14 @@
-# Chrome Built-in AI APIs - Integration Guide
+# Chrome Built-in AI APIs - Complete Integration Guide
 
 ## Overview
 
-Dark Voir integrates with **all 6 Chrome Built-in AI APIs** (available in Chrome Canary 127+):
+Dark Voir integrates with **all 5 Chrome Built-in AI APIs** (available in Chrome Canary 127+):
 
 1. **Prompt API (Gemini Nano)** - Main AI engine for conversations and analysis
 2. **Summarizer API** - Condenses long text (error logs, console output)
 3. **Writer API** - Generates content (fix instructions, documentation)
 4. **Rewriter API** - Rephrases text (simplifies technical language)
 5. **Translator API** - Translates between languages
-6. **Language Detector API** - Detects text language
 
 ---
 
@@ -17,23 +16,22 @@ Dark Voir integrates with **all 6 Chrome Built-in AI APIs** (available in Chrome
 
 ### Enable Chrome AI
 
-1. Open `chrome://flags` in Chrome Canary
+1. Open `chrome://flags` in Chrome Canary (127+)
 2. Search for each flag and set to **Enabled**:
    - `Prompt API for Gemini Nano`
    - `Summarization API for Gemini Nano`
    - `Writer API for Gemini Nano`
    - `Rewriter API for Gemini Nano`
    - `Translation API`
-   - `Language Detection API`
 3. Click **Relaunch**
 
 ### Download AI Model
 
 1. Go to `chrome://components`
 2. Find **"Optimization Guide On Device Model"**
-3. Click **"Check for update"**
-4. Wait 5-10 minutes for download
-5. Status should show "Up-to-date"
+3. Click **Check for update**
+4. Wait for download (~400MB)
+5. Restart browser
 
 ---
 
@@ -41,257 +39,162 @@ Dark Voir integrates with **all 6 Chrome Built-in AI APIs** (available in Chrome
 
 ### 1. Prompt API (Gemini Nano)
 
-**Purpose**: Main conversational AI for troubleshooting and analysis
+**Purpose**: Text generation and conversation
 
-**Check Availability:**
-
-```javascript
-async function checkPromptAPI() {
-  if (!window.ai?.assistant) {
-    return { available: false, reason: 'API not found' };
-  }
-  
-  const capabilities = await window.ai.assistant.capabilities();
-  
-  return {
-    available: capabilities.available === 'readily',
-    needsDownload: capabilities.available === 'after-download',
-    status: capabilities.available
-  };
-}
-```
-
-**Create Session:**
+**Example Usage**:
 
 ```javascript
-const session = await window.ai.assistant.create({
-  systemPrompt: "You are Dark Voir, an AI troubleshooting assistant. Provide concise, helpful responses.",
-  temperature: 0.7,  // 0.0 (deterministic) to 1.0 (creative)
-  topK: 40          // Sampling diversity (1-100)
-});
-```
+// Check availability
+const capabilities = await window.ai.languageModel.capabilities();
 
-**Send Prompt:**
-
-```javascript
-// Simple prompt
-const response = await session.prompt("What causes this JavaScript error?");
-console.log(response);
-
-// Streaming response (for real-time display)
-const stream = await session.promptStreaming("Explain this issue in detail");
-for await (const chunk of stream) {
-  console.log(chunk); // Incremental text
-  updateUI(chunk);
-}
-```
-
-**Best Practices:**
-- Keep prompts under 1024 tokens (~800 words)
-- Include context in system prompt, not every message
-- Reuse sessions for multiple prompts
-- Always destroy session when done: `await session.destroy()`
-- Handle errors gracefully (API may be temporarily unavailable)
-
-**Example Usage in Dark Voir:**
-
-```javascript
-async function analyzeError(error) {
-  const session = await window.ai.assistant.create({
-    systemPrompt: "You are an expert at diagnosing web page errors. Provide brief, actionable explanations."
+if (capabilities.available === 'readily') {
+  // Create session
+  const session = await window.ai.languageModel.create({
+    systemPrompt: "You are a helpful troubleshooting assistant."
   });
   
-  const prompt = `
-Error: ${error.message}
-Type: ${error.type}
-URL: ${error.url}
-
-Provide:
-1. What caused this
-2. User impact  
-3. How to fix it
-`;
+  // Use session
+  const response = await session.prompt("What's wrong with my code?");
+  console.log(response);
   
-  const analysis = await session.prompt(prompt);
+  // Cleanup
   await session.destroy();
-  
-  return analysis;
 }
 ```
+
+**Status Values**:
+- `'readily'` - Ready to use immediately
+- `'after-download'` - Will download model, then ready
+- `'no'` - Not available
+
+**Use Cases in Dark Voir**:
+- Issue analysis and explanation
+- Fix generation with code examples
+- Chat conversations
+- Code suggestions and debugging tips
 
 ---
 
 ### 2. Summarizer API
 
-**Purpose**: Condense long text (error logs, console output)
+**Purpose**: Condense long text into key points
 
-**Check Availability:**
-
-```javascript
-async function checkSummarizerAPI() {
-  if (!window.ai?.summarizer) {
-    return { available: false };
-  }
-  
-  const capabilities = await window.ai.summarizer.capabilities();
-  return {
-    available: capabilities.available === 'readily'
-  };
-}
-```
-
-**Create Summarizer:**
+**Example Usage**:
 
 ```javascript
-const summarizer = await window.ai.summarizer.create({
-  type: 'key-points',  // 'key-points', 'tl;dr', 'teaser', 'headline'
-  format: 'markdown',  // 'markdown' or 'plain-text'
-  length: 'medium'     // 'short', 'medium', 'long'
-});
-```
+// Check availability
+const capabilities = await window.ai.summarizer.capabilities();
 
-**Summarize Text:**
-
-```javascript
-const longText = `[Very long error log or console output]`;
-const summary = await summarizer.summarize(longText);
-console.log(summary);
-
-await summarizer.destroy();
-```
-
-**Example Usage:**
-
-```javascript
-async function summarizeErrorLog(errorLog) {
+if (capabilities.available !== 'no') {
+  // Create summarizer
   const summarizer = await window.ai.summarizer.create({
     type: 'key-points',
-    format: 'plain-text',
-    length: 'short'
+    format: 'markdown',
+    length: 'medium'
   });
   
-  const summary = await summarizer.summarize(errorLog);
-  await summarizer.destroy();
+  // Summarize
+  const longErrorLog = "Error: ..."; // Long text
+  const summary = await summarizer.summarize(longErrorLog);
   
-  return summary;
+  // Cleanup
+  await summarizer.destroy();
 }
 ```
+
+**Parameters**:
+- `type`: 
+  - `'key-points'` - Extract main points
+  - `'tl;dr'` - Brief summary
+- `format`: 
+  - `'markdown'` - Formatted output
+  - `'plain-text'` - Plain text
+- `length`: 
+  - `'short'` - Brief summary
+  - `'medium'` - Balanced
+  - `'long'` - Detailed
+
+**Use Cases**:
+- Summarize error logs
+- Condense console output
+- Extract key issues from stack traces
 
 ---
 
 ### 3. Writer API
 
-**Purpose**: Generate content (fix instructions, explanations)
+**Purpose**: Generate written content
 
-**Check Availability:**
-
-```javascript
-async function checkWriterAPI() {
-  if (!window.ai?.writer) {
-    return { available: false };
-  }
-  
-  const capabilities = await window.ai.writer.capabilities();
-  return {
-    available: capabilities.available === 'readily'
-  };
-}
-```
-
-**Create Writer:**
+**Example Usage**:
 
 ```javascript
-const writer = await window.ai.writer.create({
-  tone: 'friendly',   // 'formal', 'neutral', 'friendly'
-  format: 'markdown', // 'markdown' or 'plain-text'
-  length: 'medium'    // 'short', 'medium', 'long'
-});
-```
+const capabilities = await window.ai.writer.capabilities();
 
-**Generate Content:**
-
-```javascript
-const prompt = "Write step-by-step instructions to fix a CORS error";
-const instructions = await writer.write(prompt);
-console.log(instructions);
-
-await writer.destroy();
-```
-
-**Example Usage:**
-
-```javascript
-async function generateFixInstructions(issue) {
+if (capabilities.available !== 'no') {
   const writer = await window.ai.writer.create({
-    tone: 'friendly',
-    format: 'markdown',
-    length: 'short'
+    tone: 'professional',
+    length: 'medium'
   });
   
-  const prompt = `Write instructions to fix: ${issue.message}`;
-  const instructions = await writer.write(prompt);
-  await writer.destroy();
+  const content = await writer.write(
+    "Generate step-by-step fix instructions for a network timeout error"
+  );
   
-  return instructions;
+  await writer.destroy();
 }
 ```
+
+**Parameters**:
+- `tone`: 
+  - `'professional'` - Formal language
+  - `'casual'` - Conversational
+  - `'friendly'` - Warm and approachable
+- `length`: 
+  - `'short'` - Concise
+  - `'medium'` - Balanced
+  - `'long'` - Detailed
+
+**Use Cases**:
+- Generate fix instructions
+- Write documentation for fixes
+- Create error explanations
 
 ---
 
 ### 4. Rewriter API
 
-**Purpose**: Rephrase text (simplify technical jargon)
+**Purpose**: Rephrase and improve text
 
-**Check Availability:**
-
-```javascript
-async function checkRewriterAPI() {
-  if (!window.ai?.rewriter) {
-    return { available: false };
-  }
-  
-  const capabilities = await window.ai.rewriter.capabilities();
-  return {
-    available: capabilities.available === 'readily'
-  };
-}
-```
-
-**Create Rewriter:**
+**Example Usage**:
 
 ```javascript
-const rewriter = await window.ai.rewriter.create({
-  tone: 'more-casual', // 'more-formal', 'more-casual'
-  length: 'as-is'      // 'shorter', 'longer', 'as-is'
-});
-```
+const capabilities = await window.ai.rewriter.capabilities();
 
-**Rewrite Text:**
-
-```javascript
-const technical = "TypeError: Cannot read property 'map' of undefined at line 42";
-const simplified = await rewriter.rewrite(technical);
-console.log(simplified);
-// Output: "The code tried to use data that doesn't exist yet"
-
-await rewriter.destroy();
-```
-
-**Example Usage:**
-
-```javascript
-async function simplifyTechnicalError(error) {
+if (capabilities.available !== 'no') {
   const rewriter = await window.ai.rewriter.create({
-    tone: 'more-casual',
-    length: 'shorter'
+    tone: 'casual',
+    format: 'plain-text'
   });
   
-  const simplified = await rewriter.rewrite(error);
-  await rewriter.destroy();
+  const technical = "Uncaught TypeError: Cannot read property 'map' of undefined";
+  const userFriendly = await rewriter.rewrite(
+    technical,
+    { context: "Make this error message user-friendly" }
+  );
   
-  return simplified;
+  await rewriter.destroy();
 }
 ```
+
+**Context Options**:
+- Change tone (formal → casual)
+- Improve clarity
+- Adjust length (expand or condense)
+
+**Use Cases**:
+- Simplify technical error messages
+- Make jargon user-friendly
+- Improve fix explanations
 
 ---
 
@@ -299,304 +202,337 @@ async function simplifyTechnicalError(error) {
 
 **Purpose**: Translate text between languages
 
-**Check Availability:**
+**Example Usage**:
 
 ```javascript
-async function checkTranslatorAPI() {
-  if (!window.ai?.translator) {
-    return { available: false };
-  }
-  
-  const capabilities = await window.ai.translator.capabilities();
-  return {
-    available: capabilities.available === 'readily'
-  };
-}
-```
-
-**Create Translator:**
-
-```javascript
-const translator = await window.ai.translator.create({
-  sourceLanguage: 'en',  // ISO 639-1 code
-  targetLanguage: 'es'   // ISO 639-1 code
+// Check if translation is possible
+const canTranslate = await window.ai.translator.canTranslate({
+  sourceLanguage: 'auto',
+  targetLanguage: 'es'
 });
-```
 
-**Translate Text:**
-
-```javascript
-const english = "This page has a JavaScript error";
-const spanish = await translator.translate(english);
-console.log(spanish);
-// Output: "Esta página tiene un error de JavaScript"
-
-await translator.destroy();
-```
-
-**Example Usage:**
-
-```javascript
-async function translateMessage(message, targetLang) {
+if (canTranslate !== 'no') {
   const translator = await window.ai.translator.create({
-    sourceLanguage: 'en',
-    targetLanguage: targetLang
+    sourceLanguage: 'auto',
+    targetLanguage: 'es'
   });
   
-  const translated = await translator.translate(message);
-  await translator.destroy();
+  const translated = await translator.translate(
+    "This error occurred because the network request timed out"
+  );
   
-  return translated;
+  await translator.destroy();
 }
 ```
 
+**Language Codes**:
+- `'auto'` - Auto-detect source language
+- `'en'` - English
+- `'es'` - Spanish
+- `'fr'` - French
+- `'de'` - German
+- `'ja'` - Japanese
+- `'zh'` - Chinese
+- And many more...
+
+**Use Cases**:
+- Translate error messages
+- Multilingual support
+- Global user assistance
+
 ---
 
-### 6. Language Detector API
+## Integration Patterns
 
-**Purpose**: Detect language of text
-
-**Check Availability:**
+### Pattern 1: Safe Capability Checking
 
 ```javascript
-async function checkLanguageDetectorAPI() {
-  if (!window.ai?.languageDetector) {
-    return { available: false };
+async function checkAIAvailable() {
+  try {
+    if (!window.ai?.languageModel) {
+      return false;
+    }
+    
+    const cap = await window.ai.languageModel.capabilities();
+    return cap.available === 'readily' || cap.available === 'after-download';
+  } catch (error) {
+    console.error('AI check failed:', error);
+    return false;
+  }
+}
+```
+
+### Pattern 2: Proper Session Lifecycle
+
+```javascript
+async function generateFix(issue) {
+  let session = null;
+  
+  try {
+    // Create session
+    const cap = await window.ai.languageModel.capabilities();
+    if (cap.available === 'no') {
+      throw new Error('AI not available');
+    }
+    
+    session = await window.ai.languageModel.create({
+      systemPrompt: "You are a helpful troubleshooter."
+    });
+    
+    // Use session
+    const prompt = `Fix this error: ${issue.message}`;
+    const fix = await session.prompt(prompt);
+    
+    return fix;
+    
+  } finally {
+    // Always cleanup
+    if (session && typeof session.destroy === 'function') {
+      await session.destroy();
+    }
+  }
+}
+```
+
+### Pattern 3: Fallback Chain
+
+```javascript
+async function analyzeIssue(issue) {
+  // Try Prompt API first
+  try {
+    const fix = await analyzeWithPrompt(issue);
+    return { success: true, fix, api: 'Prompt' };
+  } catch (error) {
+    console.warn('Prompt API failed:', error);
   }
   
-  const capabilities = await window.ai.languageDetector.capabilities();
+  // Try Writer API
+  try {
+    const fix = await generateWithWriter(issue);
+    return { success: true, fix, api: 'Writer' };
+  } catch (error) {
+    console.warn('Writer API failed:', error);
+  }
+  
+  // Fallback to static response
   return {
-    available: capabilities.available === 'readily'
+    success: false,
+    message: 'AI unavailable. Enable at chrome://flags',
+    api: 'None'
   };
 }
 ```
 
-**Create Detector:**
+### Pattern 4: Error Recovery
 
 ```javascript
-const detector = await window.ai.languageDetector.create();
-```
-
-**Detect Language:**
-
-```javascript
-const text = "Bonjour le monde";
-const results = await detector.detect(text);
-console.log(results);
-// Output: [{ detectedLanguage: 'fr', confidence: 0.95 }]
-
-await detector.destroy();
-```
-
-**Example Usage:**
-
-```javascript
-async function detectAndTranslate(text) {
-  const detector = await window.ai.languageDetector.create();
-  const results = await detector.detect(text);
-  await detector.destroy();
-  
-  if (results[0].detectedLanguage !== 'en') {
-    return await translateMessage(text, 'en');
-  }
-  
-  return text;
-}
-```
-
----
-
-## Error Handling
-
-### Common Errors
-
-```javascript
-try {
-  const session = await window.ai.assistant.create();
-  const response = await session.prompt(query);
-} catch (error) {
-  if (error.name === 'NotSupportedError') {
-    console.error('AI not available on this device');
-    // Fallback to alternative approach
-  } else if (error.name === 'InvalidStateError') {
-    console.error('AI model not downloaded yet');
-    // Guide user to chrome://components
-  } else if (error.name === 'QuotaExceededError') {
-    console.error('Rate limit exceeded');
-    // Implement retry with backoff
-  } else {
-    console.error('AI error:', error);
-  }
-}
-```
-
-### Retry Strategy
-
-```javascript
-async function retryWithBackoff(fn, maxRetries = 3) {
+async function robustAnalysis(issue, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
-      return await fn();
+      return await analyzeIssue(issue);
     } catch (error) {
       if (i === maxRetries - 1) throw error;
-      const delay = 1000 * Math.pow(2, i); // Exponential backoff
+      
+      // Exponential backoff
+      const delay = 1000 * Math.pow(2, i);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }
-
-// Usage
-const response = await retryWithBackoff(() => 
-  session.prompt("Analyze this error")
-);
 ```
 
 ---
 
-## Performance Optimization
+## Dark Voir Implementation
 
-### Caching Strategy
+### ChromeAIHelper Class Structure
 
 ```javascript
-class AICache {
+class ChromeAIHelper {
   constructor() {
-    this.cache = new Map();
-    this.cacheDuration = 3600000; // 1 hour
-  }
-  
-  set(key, value) {
-    this.cache.set(key, {
-      value,
-      timestamp: Date.now()
-    });
-  }
-  
-  get(key) {
-    const cached = this.cache.get(key);
-    if (!cached) return null;
-    
-    // Check if expired
-    if (Date.now() - cached.timestamp > this.cacheDuration) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return cached.value;
-  }
-}
-
-const aiCache = new AICache();
-
-// Usage
-async function cachedPrompt(text) {
-  const cached = aiCache.get(text);
-  if (cached) return cached;
-  
-  const response = await session.prompt(text);
-  aiCache.set(text, response);
-  
-  return response;
-}
-```
-
-### Session Reuse
-
-```javascript
-class AISessionManager {
-  constructor() {
-    this.session = null;
-  }
-  
-  async getSession() {
-    if (!this.session) {
-      this.session = await window.ai.assistant.create({
-        systemPrompt: "You are a helpful assistant"
-      });
-    }
-    return this.session;
-  }
-  
-  async destroySession() {
-    if (this.session) {
-      await this.session.destroy();
-      this.session = null;
-    }
-  }
-}
-```
-
----
-
-## Testing AI Integration
-
-### Check All APIs
-
-```javascript
-async function checkAllAPIs() {
-  const status = {
-    prompt: await checkPromptAPI(),
-    summarizer: await checkSummarizerAPI(),
-    writer: await checkWriterAPI(),
-    rewriter: await checkRewriterAPI(),
-    translator: await checkTranslatorAPI(),
-    languageDetector: await checkLanguageDetectorAPI()
-  };
-  
-  console.table(status);
-  return status;
-}
-
-// Run in console
-checkAllAPIs();
-```
-
----
-
-## Fallback Strategies
-
-When AI is unavailable, Dark Voir uses fallback logic:
-
-```javascript
-async function diagnoseWithFallback(error) {
-  try {
-    // Try AI first
-    return await diagnoseWithAI(error);
-  } catch (aiError) {
-    console.warn('AI unavailable, using fallback');
-    return getFallbackDiagnosis(error);
-  }
-}
-
-function getFallbackDiagnosis(error) {
-  // Rule-based diagnosis
-  if (error.type === 'javascript_error') {
-    return {
-      cause: 'JavaScript code error',
-      fix: 'Refresh the page or clear browser cache'
+    this.sessions = {
+      prompt: null,
+      writer: null,
+      rewriter: null,
+      summarizer: null,
+      translator: null
     };
+    this.capabilities = {};
+    this.isReady = false;
   }
-  // ... more rules
+  
+  async initialize() {
+    // Check and initialize all APIs
+    // Prompt API
+    if (window.ai?.languageModel) {
+      const cap = await window.ai.languageModel.capabilities();
+      this.capabilities.prompt = cap.available;
+      if (cap.available === 'readily') {
+        this.sessions.prompt = await window.ai.languageModel.create({
+          systemPrompt: "You are Dark Voir, a web troubleshooting expert."
+        });
+      }
+    }
+    // Similar for other APIs...
+  }
+  
+  async analyzeIssue(issue) {
+    if (!this.sessions.prompt) {
+      return { message: 'AI unavailable' };
+    }
+    
+    const response = await this.sessions.prompt.prompt(
+      `Analyze and fix: ${issue.message}`
+    );
+    return { analysis: response };
+  }
 }
 ```
 
 ---
 
-## Best Practices Summary
+## Performance Tips
 
-1. **Always check availability** before using an API
-2. **Reuse sessions** when making multiple requests
-3. **Implement caching** to reduce API calls
-4. **Handle errors gracefully** with fallback logic
-5. **Destroy sessions** when done to free resources
-6. **Use appropriate API** for each task (don't use Prompt API for everything)
-7. **Keep prompts concise** (< 1024 tokens)
-8. **Implement retry logic** for transient failures
-9. **Monitor rate limits** and implement backoff
-10. **Test without AI** to ensure fallbacks work
+### 1. Reuse Sessions
+
+```javascript
+// ✅ Good: Reuse session
+const session = await window.ai.languageModel.create({});
+const fix1 = await session.prompt("Fix this...");
+const fix2 = await session.prompt("Fix that...");
+await session.destroy();
+
+// ❌ Bad: Create new session each time
+for (const issue of issues) {
+  const session = await window.ai.languageModel.create({});
+  await session.prompt("Fix: " + issue);
+  await session.destroy();
+}
+```
+
+### 2. Parallel Requests
+
+```javascript
+// ✅ Good: Parallel processing
+const [fix1, fix2, fix3] = await Promise.all([
+  session.prompt("Fix 1"),
+  session.prompt("Fix 2"),
+  session.prompt("Fix 3")
+]);
+
+// ❌ Bad: Sequential
+const fix1 = await session.prompt("Fix 1");
+const fix2 = await session.prompt("Fix 2");
+const fix3 = await session.prompt("Fix 3");
+```
+
+### 3. Lazy Initialization
+
+```javascript
+let session = null;
+
+async function getSession() {
+  if (!session) {
+    session = await window.ai.languageModel.create({});
+  }
+  return session;
+}
+```
 
 ---
 
-For complete implementation examples, see:
-- `ai-manager.js` - Unified AI session management
-- `background.js` - AI integration in service worker
-- `ARCHITECTURE.md` - System design
+## Error Messages & Solutions
+
+| Error | Solution |
+|-------|----------|
+| `window.ai is undefined` | Enable AI flags at chrome://flags |
+| `capabilities.available === 'no'` | AI not available in your region/version |
+| `Model not available` | Download model at chrome://components |
+| `Permission denied` | Check extension permissions |
+| `Session destroyed` | Create new session before use |
+| `Request timeout` | Reduce prompt length or retry |
+
+---
+
+## Best Practices
+
+### 1. Always Check Capabilities
+
+```javascript
+const cap = await window.ai.languageModel.capabilities();
+if (cap.available === 'no') {
+  return defaultBehavior();
+}
+```
+
+### 2. Proper Error Handling
+
+```javascript
+try {
+  const response = await session.prompt(message);
+} catch (error) {
+  if (error.name === 'NotAllowedError') {
+    // User denied permission
+  } else if (error.name === 'UnknownError') {
+    // Network or other error
+  }
+}
+```
+
+### 3. Clean Up Resources
+
+```javascript
+// Always destroy sessions when done
+try {
+  // Use session
+} finally {
+  if (session) await session.destroy();
+}
+```
+
+---
+
+## Testing Your Integration
+
+### 1. Check AI Availability
+
+```javascript
+async function testAI() {
+  console.log('Testing Chrome AI...');
+  
+  if (!window.ai) {
+    console.error('❌ window.ai not found');
+    return;
+  }
+  
+  const cap = await window.ai.languageModel.capabilities();
+  console.log('✅ Prompt API:', cap.available);
+}
+
+testAI();
+```
+
+### 2. Test Session Creation
+
+```javascript
+async function testSession() {
+  const session = await window.ai.languageModel.create({});
+  const response = await session.prompt("Hello!");
+  console.log('Response:', response);
+  await session.destroy();
+}
+```
+
+---
+
+## Additional Resources
+
+- [Chrome AI Documentation](https://developer.chrome.com/docs/ai/)
+- [Gemini Nano Overview](https://developers.google.com/machine-learning/nano)
+- [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
+
+---
+
+**Version**: 3.0.0  
+**Last Updated**: October 2025  
+**Minimum Chrome Version**: 127 (Canary)

@@ -12,6 +12,8 @@ class ErrorHandler {
     this.setupDefaultStrategies();
   }
 
+  // ============= DEFAULT STRATEGIES =============
+
   /**
    * Setup default recovery strategies
    * @private
@@ -21,6 +23,7 @@ class ErrorHandler {
     this.registerRecoveryStrategy('AI_NOT_AVAILABLE', async (error) => {
       logger.warn('Chrome AI not available, checking status...');
       const aiStatus = await this.checkAIAvailability();
+      
       return {
         recovered: false,
         message: 'Chrome AI features require Chrome Canary 127+ with AI enabled',
@@ -56,6 +59,33 @@ class ErrorHandler {
       };
     });
 
+    // Timeout error
+    this.registerRecoveryStrategy('TIMEOUT_ERROR', async (error) => {
+      return {
+        recovered: false,
+        message: 'Operation timed out',
+        suggestion: 'The operation took too long. Please try again.'
+      };
+    });
+
+    // Storage error
+    this.registerRecoveryStrategy('STORAGE_ERROR', async (error) => {
+      return {
+        recovered: false,
+        message: 'Storage access error',
+        suggestion: 'Check browser storage settings and try again'
+      };
+    });
+
+    // Extension context error
+    this.registerRecoveryStrategy('EXTENSION_CONTEXT_ERROR', async (error) => {
+      return {
+        recovered: false,
+        message: 'Extension context was invalidated',
+        suggestion: 'The extension was reloaded. Please refresh the page.'
+      };
+    });
+
     // Generic error
     this.registerRecoveryStrategy('GENERIC_ERROR', async (error) => {
       return {
@@ -64,7 +94,11 @@ class ErrorHandler {
         suggestion: 'Try reloading the extension or page'
       };
     });
+
+    console.log('[Error Handler] Default recovery strategies loaded');
   }
+
+  // ============= REGISTRATION =============
 
   /**
    * Register a recovery strategy for error type
@@ -72,25 +106,42 @@ class ErrorHandler {
    * @param {Function} strategy - Recovery function
    */
   registerRecoveryStrategy(errorType, strategy) {
+    if (typeof strategy !== 'function') {
+      console.warn('[Error Handler] Invalid strategy for', errorType);
+      return;
+    }
+    
     this.recoveryStrategies.set(errorType, strategy);
   }
+
+  /**
+   * Register error callback
+   * @param {Function} callback - Callback function
+   */
+  onError(callback) {
+    if (typeof callback === 'function') {
+      this.errorCallbacks.push(callback);
+    }
+  }
+
+  // ============= MAIN ERROR HANDLING =============
 
   /**
    * Handle an error
    * @param {Error|string} error - Error object or message
    * @param {Object} context - Additional context
-   * @returns {Promise<Object>} Recovery result
+   * @returns {Promise} Recovery result
    */
   async handle(error, context = {}) {
     try {
       // Create error entry
       const errorEntry = {
-        id: DarkVoirUtils.generateId(),
+        id: DarkVoirUtils?.generateId?.() || `${Date.now()}_${Math.random()}`,
         timestamp: Date.now(),
-        message: error.message || error,
-        stack: error.stack || new Error().stack,
+        message: error?.message || String(error),
+        stack: error?.stack || new Error().stack,
         type: this.categorizeError(error),
-        context,
+        context: context,
         recovered: false
       };
 
@@ -101,10 +152,14 @@ class ErrorHandler {
       }
 
       // Log error
-      logger.error(`Error handled: ${errorEntry.type}`, {
-        message: errorEntry.message,
-        context: errorEntry.context
-      });
+      if (logger) {
+        logger.error(`Error handled: ${errorEntry.type}`, {
+          message: errorEntry.message,
+          context: errorEntry.context
+        });
+      } else {
+        console.error('[Error Handler]', errorEntry.type, errorEntry.message);
+      }
 
       // Attempt recovery
       const recoveryResult = await this.attemptRecovery(errorEntry);
@@ -118,8 +173,14 @@ class ErrorHandler {
       await this.persistErrors();
 
       return recoveryResult;
+
     } catch (handlingError) {
-      logger.error('Error in error handler:', handlingError);
+      if (logger) {
+        logger.error('Error in error handler:', handlingError);
+      } else {
+        console.error('[Error Handler] Handling failed:', handlingError);
+      }
+
       return {
         recovered: false,
         message: 'Failed to handle error',
@@ -128,28 +189,50 @@ class ErrorHandler {
     }
   }
 
+  // ============= ERROR CATEGORIZATION =============
+
   /**
    * Categorize error type
    * @private
    */
   categorizeError(error) {
-    const message = error.message || error.toString();
-    
-    if (message.includes('AI') || message.includes('window.ai')) {
+    if (!error) return 'GENERIC_ERROR';
+
+    const message = error?.message || error.toString();
+    const messageLower = message.toLowerCase();
+
+    if (messageLower.includes('ai') || messageLower.includes('window.ai')) {
       return 'AI_NOT_AVAILABLE';
     }
-    if (message.includes('permission')) {
+    
+    if (messageLower.includes('permission')) {
       return 'PERMISSION_DENIED';
     }
-    if (message.includes('network') || message.includes('fetch')) {
+    
+    if (messageLower.includes('network') || messageLower.includes('fetch')) {
       return 'NETWORK_ERROR';
     }
-    if (message.includes('element') || message.includes('querySelector')) {
+    
+    if (messageLower.includes('element') || messageLower.includes('queryselector')) {
       return 'ELEMENT_NOT_FOUND';
     }
     
+    if (messageLower.includes('timeout')) {
+      return 'TIMEOUT_ERROR';
+    }
+    
+    if (messageLower.includes('storage') || messageLower.includes('quota')) {
+      return 'STORAGE_ERROR';
+    }
+    
+    if (messageLower.includes('context') || messageLower.includes('extension')) {
+      return 'EXTENSION_CONTEXT_ERROR';
+    }
+
     return 'GENERIC_ERROR';
   }
+
+  // ============= RECOVERY =============
 
   /**
    * Attempt to recover from error
@@ -162,15 +245,18 @@ class ErrorHandler {
       try {
         return await strategy(errorEntry);
       } catch (recoveryError) {
-        logger.error('Recovery strategy failed:', recoveryError);
+        if (logger) {
+          logger.error('Recovery strategy failed:', recoveryError);
+        }
+        
         return {
           recovered: false,
           message: 'Recovery attempt failed',
-          error: recoveryError.message
+          error: recoveryError?.message
         };
       }
     }
-    
+
     // Default recovery
     return {
       recovered: false,
@@ -192,27 +278,30 @@ class ErrorHandler {
         };
       }
 
-      const canCreate = await window.ai.canCreateTextSession();
+      // Try to get capabilities
+      if (window.ai.languageModel?.capabilities) {
+        const canCreate = await window.ai.languageModel.capabilities();
+        return {
+          available: canCreate.available === 'readily' || canCreate.available === 'after-download',
+          status: canCreate.available,
+          needsDownload: canCreate.available === 'after-download'
+        };
+      }
+
       return {
-        available: canCreate === 'readily' || canCreate === 'after-download',
-        status: canCreate,
-        needsDownload: canCreate === 'after-download'
+        available: false,
+        reason: 'Capabilities check not available'
       };
+
     } catch (error) {
       return {
         available: false,
-        reason: error.message
+        reason: error?.message
       };
     }
   }
 
-  /**
-   * Register error callback
-   * @param {Function} callback - Callback function
-   */
-  onError(callback) {
-    this.errorCallbacks.push(callback);
-  }
+  // ============= CALLBACKS =============
 
   /**
    * Notify all callbacks of error
@@ -223,10 +312,16 @@ class ErrorHandler {
       try {
         callback(errorEntry);
       } catch (error) {
-        logger.error('Error in callback:', error);
+        if (logger) {
+          logger.error('Error in error callback:', error);
+        } else {
+          console.error('[Error Handler] Callback error:', error);
+        }
       }
     });
   }
+
+  // ============= DATA RETRIEVAL =============
 
   /**
    * Get all errors
@@ -251,50 +346,40 @@ class ErrorHandler {
    * @returns {Array} Recent errors
    */
   getRecentErrors(count = 10) {
-    return this.errors.slice(-count);
+    return this.errors.slice(-Math.min(count, this.errors.length));
   }
 
   /**
-   * Clear all errors
+   * Get errors by time range
+   * @param {number} startTime - Start timestamp
+   * @param {number} endTime - End timestamp
+   * @returns {Array} Errors in range
    */
-  clear() {
-    this.errors = [];
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.remove('dark_voir_errors');
-    }
+  getErrorsByTimeRange(startTime, endTime) {
+    return this.errors.filter(err =>
+      err.timestamp >= startTime && err.timestamp <= endTime
+    );
   }
 
   /**
-   * Persist errors to storage
-   * @private
+   * Search errors by message
+   * @param {string} query - Search query
+   * @returns {Array} Matching errors
    */
-  async persistErrors() {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        const recentErrors = this.errors.slice(-50);
-        await chrome.storage.local.set({
-          'dark_voir_errors': recentErrors
-        });
-      }
-    } catch (error) {
-      logger.error('Failed to persist errors:', error);
-    }
+  searchErrors(query) {
+    const lowerQuery = query?.toLowerCase() || '';
+    return this.errors.filter(err =>
+      err.message.toLowerCase().includes(lowerQuery) ||
+      err.type.toLowerCase().includes(lowerQuery)
+    );
   }
 
   /**
-   * Load errors from storage
+   * Get error count
+   * @returns {number} Total error count
    */
-  async loadErrors() {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get('dark_voir_errors');
-        if (result.dark_voir_errors) {
-          this.errors = result.dark_voir_errors;
-        }
-      }
-    } catch (error) {
-      logger.error('Failed to load errors:', error);
-    }
+  getErrorCount() {
+    return this.errors.length;
   }
 
   /**
@@ -307,13 +392,17 @@ class ErrorHandler {
       byType: {},
       recovered: 0,
       unrecovered: 0,
-      lastError: this.errors[this.errors.length - 1] || null
+      lastError: this.errors[this.errors.length - 1] || null,
+      timeRange: {
+        oldest: this.errors[0]?.timestamp || null,
+        newest: this.errors[this.errors.length - 1]?.timestamp || null
+      }
     };
 
     this.errors.forEach(error => {
       // Count by type
       stats.byType[error.type] = (stats.byType[error.type] || 0) + 1;
-      
+
       // Count recovered
       if (error.recovered) {
         stats.recovered++;
@@ -326,6 +415,117 @@ class ErrorHandler {
   }
 
   /**
+   * Get formatted report
+   * @returns {string} Report text
+   */
+  getReport() {
+    const stats = this.getStatistics();
+    
+    let report = `
+═════════════════════════════════════════
+Error Handler Report
+═════════════════════════════════════════
+Total Errors: ${stats.total}
+  • Recovered: ${stats.recovered}
+  • Unrecovered: ${stats.unrecovered}
+
+By Type:
+`;
+
+    Object.entries(stats.byType).forEach(([type, count]) => {
+      report += `  • ${type}: ${count}\n`;
+    });
+
+    if (stats.lastError) {
+      report += `
+Last Error:
+  • Type: ${stats.lastError.type}
+  • Message: ${stats.lastError.message}
+  • Time: ${new Date(stats.lastError.timestamp).toISOString()}
+`;
+    }
+
+    report += `
+═════════════════════════════════════════
+`;
+
+    return report.trim();
+  }
+
+  // ============= DATA MANAGEMENT =============
+
+  /**
+   * Clear all errors
+   */
+  clear() {
+    this.errors = [];
+    
+    try {
+      if (typeof chrome !== 'undefined' && chrome?.storage) {
+        chrome.storage.local.remove('dark_voir_errors');
+      }
+    } catch (error) {
+      // Silently fail
+    }
+  }
+
+  /**
+   * Persist errors to storage
+   * @private
+   */
+  async persistErrors() {
+    try {
+      if (typeof chrome === 'undefined' || !chrome?.storage) {
+        return;
+      }
+
+      const recentErrors = this.errors.slice(-50);
+      
+      return new Promise((resolve) => {
+        chrome.storage.local.set({ 'dark_voir_errors': recentErrors }, () => {
+          if (chrome.runtime?.lastError) {
+            // Silently fail
+          }
+          resolve();
+        });
+      });
+
+    } catch (error) {
+      if (logger) {
+        logger.error('Failed to persist errors:', error);
+      }
+    }
+  }
+
+  /**
+   * Load errors from storage
+   * @returns {Promise} Promise when loaded
+   */
+  async loadErrors() {
+    try {
+      if (typeof chrome === 'undefined' || !chrome?.storage) {
+        return;
+      }
+
+      return new Promise((resolve) => {
+        chrome.storage.local.get('dark_voir_errors', (result) => {
+          if (result.dark_vier_errors) {
+            this.errors = result.dark_voir_errors;
+          }
+          resolve();
+        });
+      });
+
+    } catch (error) {
+      if (logger) {
+        logger.error('Failed to load errors:', error);
+      }
+    }
+  }
+
+  // ============= EXPORT =============
+
+  /**
    * Export errors as JSON
    * @returns {string} JSON string
    */
@@ -333,10 +533,40 @@ class ErrorHandler {
     return JSON.stringify({
       errors: this.errors,
       statistics: this.getStatistics(),
-      exportedAt: Date.now()
+      exportedAt: new Date().toISOString()
     }, null, 2);
   }
+
+  /**
+   * Export errors as CSV
+   * @returns {string} CSV string
+   */
+  exportAsCSV() {
+    if (this.errors.length === 0) return 'Timestamp,Type,Message,Recovered\n';
+
+    const headers = 'Timestamp,Type,Message,Recovered\n';
+    const rows = this.errors.map(error => {
+      const timestamp = new Date(error.timestamp).toISOString();
+      const message = (error.message || '').replace(/"/g, '""');
+      
+      return `"${timestamp}","${error.type}","${message}",${error.recovered}`;
+    });
+
+    return headers + rows.join('\n');
+  }
+
+  /**
+   * Export as formatted text
+   * @returns {string} Formatted text
+   */
+  exportAsText() {
+    return this.getReport() + '\n\n' + this.errors.map((error, i) => {
+      return `${i + 1}. [${new Date(error.timestamp).toISOString()}] ${error.type}\n   ${error.message}`;
+    }).join('\n\n');
+  }
 }
+
+// ============= GLOBAL SETUP =============
 
 // Create global error handler
 const errorHandler = new ErrorHandler();
@@ -344,7 +574,7 @@ const errorHandler = new ErrorHandler();
 // Setup global error listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
-    errorHandler.handle(event.error, {
+    errorHandler.handle(event.error || event, {
       type: 'window_error',
       filename: event.filename,
       lineno: event.lineno,
@@ -355,10 +585,12 @@ if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     errorHandler.handle(event.reason, {
       type: 'unhandled_rejection',
-      promise: 'Promise rejection'
+      prompt: 'Promise rejection'
     });
   });
 }
+
+// ============= EXPORTS =============
 
 // Export for ES6 modules
 if (typeof module !== 'undefined' && module.exports) {
@@ -370,3 +602,5 @@ if (typeof window !== 'undefined') {
   window.DarkVoirErrorHandler = ErrorHandler;
   window.errorHandler = errorHandler;
 }
+
+console.log('[Error Handler] Dark Voir error handling system loaded');
