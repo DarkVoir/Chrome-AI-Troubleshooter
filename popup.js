@@ -276,10 +276,12 @@ class PopupController {
       const result = await chrome.storage.local.get([
         'dark_voir_issues',
         'dark_voir_settings',
-        'dark_voir_chat_history'
+        'dark_voir_chat_history',
+        'dark_voir_fixes'
       ]);
 
       this.issues = result.dark_voir_issues || [];
+      this.fix = result.dark_voir_fixes || [];
       this.settings = result.dark_voir_settings || this.getDefaultSettings();
       this.chatHistory = result.dark_voir_chat_history || [];
 
@@ -723,12 +725,13 @@ class PopupController {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${role}`;
     messageDiv.style.cssText = `
+      background: #000;
+      color: #fff;
       padding: 12px 16px;
       margin-bottom: 10px;
       border-radius: 12px;
       max-width: 85%;
       ${role === 'user' ? 'margin-left: auto; background: linear-gradient(45deg, #667eea, #764ba2);' : 'background: rgba(255, 255, 255, 0.05);'}
-      color: white;
       font-size: 13px;
       line-height: 1.5;
       word-wrap: break-word;
